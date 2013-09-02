@@ -31,16 +31,67 @@ function handler (req, res) {
   }
 }
 
+function createArray(length) {
+  var arr = new Array(length || 0),
+      i = length;
+  if (arguments.length > 1) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    while(i--) arr[length-1 - i] = createArray.apply(this, args);
+  }
+  return arr;
+}
+
+function getDataArray(bytearray){
+  var dataArray = createArray(width,height);
+  for(var i=0;i<bytearray.length/2;i++){
+    //for depth feed  . bytearray  [val , mult, val2, mult2, ...]
+    // when out of range, mult=7. range (0-255, 0-7)
+    var depthVal = bytearray[2*i]+bytearray[2*i+1]*255;
+    var x = i % width;
+    var y = Math.floor(i / width);
+    dataArray[x][y] = depthVal;
+  }
+  return dataArray;
+}
+
+function getBufferFromArray(arr){
+  var buf = new Buffer(width*height);
+  for(var i=0; i<width; i++){
+    for(var j=0; j <height; j++){
+      var index = j*width + i;
+      buf[index] = arr[i][j];
+    }
+  }
+  return buf;
+}
+
+function processArray(arr){
+  var res = createArray(width,height);
+  for(var i=0; i< width; i++){
+    for(var j=0; j < height-1; j++){
+      if(arr[i][j]-arr[i][j+1]>0.9){
+        res[i][j] = 255;
+      }
+    }
+  }
+  return res;
+}
+
+
 var kcontext = kinect();
+var width = 640;
+var height = 480;
+
 
 kcontext.resume();
-
 kcontext.start('depth');
-
 var kstream = new BufferStream();
 
 kcontext.on('depth', function (buf) {
-  kstream.write(buf);
+  var bytearray = new Uint8Array(buf);
+  var dataArray = getDataArray(bytearray);
+  var buffer = getBufferFromArray(processArray(dataArray));
+  kstream.write(buffer);
 });
 
 

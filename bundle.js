@@ -9,12 +9,10 @@ function createArray(length) {
   return arr;
 }
 
-function getDataArray(bytearray){
+function getDepthArray(bytearray){
   var dataArray = createArray(width,height);
-  for(var i=0;i<bytearray.length/2;i++){
-    //for depth feed  . bytearray  [val , mult, val2, mult2, ...]
-    // when out of range, mult=7. range (0-255, 0-7)
-    var depthVal = bytearray[2*i]+bytearray[2*i+1]*255;
+  for(var i=0;i<bytearray.length;i++){
+    var depthVal = bytearray[i];
     var x = i % width;
     var y = Math.floor(i / width);
     dataArray[x][y] = depthVal;
@@ -27,7 +25,7 @@ function renderArrayToCanvas(arr){
   for(var i=0; i<width; i++){
     for(var j=0; j < height; j++){
       var index = j*width + i;
-      var depth = arr[i][j];
+      var depth = arr[i][j]/5;
       imgdata.data[4*index] = depth;
       imgdata.data[4*index+1] = depth;
       imgdata.data[4*index+2] = depth;
@@ -35,42 +33,32 @@ function renderArrayToCanvas(arr){
     }
   }
   ctx.putImageData(imgdata,0,0);
+  in_processing = false;
 }
 
-function processArray(arr){
-  var res = createArray(width,height);
-  for(var i=0; i< width; i++){
-    for(var j=0; j < height-1; j++){
-      if(arr[i][j]-arr[i][j+1]<0.5){
-        res[i][j] = 200;
-      }
-    }
-  }
-  return res;
-}
 
 function initThreeJS() {
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.z = 10;
-    scene = new THREE.Scene();
-    for(var i=0; i<10; i++){
-      for(var j=0; j<10; j++){
-        var geometry = new THREE.CubeGeometry(1,1,1);
-        var material = new THREE.MeshBasicMaterial( { color: 0xff0000} );
-        var mesh = new THREE.Mesh( geometry, material );
-        scene.add( mesh );
-        vertices.push( new THREE.Vector3(i, j, i ));
-      }
+  camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+  camera.position.z = 10;
+  scene = new THREE.Scene();
+  for(var i=0; i<10; i++){
+    for(var j=0; j<10; j++){
+      var geometry = new THREE.CubeGeometry(1,1,1);
+      var material = new THREE.MeshBasicMaterial( { color: 0xff0000} );
+      var mesh = new THREE.Mesh( geometry, material );
+      scene.add( mesh );
+      vertices.push( new THREE.Vector3(i, j, i ));
     }
-    //geometry = new THREE.Geometry();
-    renderer = new THREE.WebGLRenderer();
-    renderer.setSize( window.innerWidth, window.innerHeight);
-    $("#container").append( renderer.domElement );
+  }
+  //geometry = new THREE.Geometry();
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize( window.innerWidth, window.innerHeight);
+  $("#container").append( renderer.domElement );
 }
 
 function renderThreeJS(){
-    requestAnimationFrame(renderThreeJS);
-    renderer.render( scene, camera );
+  requestAnimationFrame(renderThreeJS);
+  renderer.render( scene, camera );
 }
 
 
@@ -85,15 +73,17 @@ var ctx = document.getElementById('canvas').getContext('2d');
 var camera, scene, renderer;
 var geometry, material, mesh;
 var vertices = [];
+var in_processing = false;
 
 //initThreeJS();
 //renderThreeJS();
 //loop
 
 socket.on('data', function (data) {
-  var bytearray = new Uint8Array(data);
-  var dataArray = getDataArray(bytearray);
-  renderArrayToCanvas(processArray(dataArray));
+      in_processing = true;
+    var bytearray = new Uint8Array(data);
+    var dataArray = getDepthArray(bytearray);
+    renderArrayToCanvas(dataArray);
 });
 
 
