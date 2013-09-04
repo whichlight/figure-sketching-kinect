@@ -76,15 +76,15 @@ function processArray(arr){
     for(var j=0; j < height-1; j++){
       var diffy = Math.abs(arr[i][j]-arr[i][j+1]);
       var diffx = Math.abs(arr[i][j]-arr[i+1][j]);
-      if((diffy>2 || diffx>2)){
-        res[i][j] = 255
+      if((diffy>1 || diffx>1)){
+        res[i][j] = Math.max(diffy,diffx)*2+200;
       }
       else{
         res[i][j] = 0;
       }
       var t_diff = Math.abs(mem[i][j]-res[i][j]);
-      sub[i][j] =Math.min(mem[i][j], res[i][j]);
-      mem[i][j]=res[i][j];
+      sub[i][j] =t_diff;
+        mem[i][j]=res[i][j];
 
 
     }
@@ -162,12 +162,49 @@ function smoothDepth(arr){
   return res;
 }
 
+
+function movingAverage(arr, movingAverageWindow){
+  depthQueue.push(arr);
+
+  if (depthQueue.length > movingAverageWindow){
+    depthQueue.shift();
+  }
+
+  var denominator = 0;
+  var count = 1;
+  var sumDepthArray = createArray(width,height);
+  var averagedDepthArray = createArray(width,height);
+
+  for(var i=0; i<width; i++){
+    for( var j=0; j<height; j++){
+      sumDepthArray[i][j] =0;
+    }
+  }
+
+  for(var layer=0; layer < depthQueue.length ; layer ++){
+    for(var i=0; i<width; i++){
+      for( var j=0; j<height; j++){
+        sumDepthArray[i][j] += depthQueue[layer][i][j-2*count] * count;
+      }
+    }
+    denominator+=count;
+    count++;
+  }
+  for(var i=0; i<width; i++){
+    for( var j=0; j<height; j++){
+      averagedDepthArray[i][j] = sumDepthArray[i][j]/denominator;
+    }
+  }
+  return averagedDepthArray;
+}
+
 var kcontext = kinect();
 var width = 640;
 var height = 480;
 var mem = createArray(width,height);
-var innerBandThreshold = 4;
-var outerBandThreshold = 10;
+var innerBandThreshold = 2;
+var outerBandThreshold = 8;
+var depthQueue = [];
 
 
 //for edge calc
@@ -182,8 +219,9 @@ kcontext.on('depth', function (buf) {
   var bytearray = new Uint8Array(buf);
   var dataArray = getDataArray(bytearray);
   var smoothArray = smoothDepth(dataArray);
-  var procArray = processArray(dataArray);
-  var buffer = getBufferFromArray(smoothArray);
+  var aveArray = movingAverage(smoothArray,3);
+  var procArray = processArray(aveArray);
+  var buffer = getBufferFromArray(procArray);
   kstream.write(buffer);
 });
 

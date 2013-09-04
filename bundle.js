@@ -25,7 +25,7 @@ function renderArrayToCanvas(arr){
   for(var i=0; i<width; i++){
     for(var j=0; j < height; j++){
       var index = j*width + i;
-      var depth = arr[i][j];
+      var depth = arr[width-1-i][j];
       imgdata.data[4*index] = depth;
       imgdata.data[4*index+1] = depth;
       imgdata.data[4*index+2] = depth;
@@ -567,67 +567,7 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":4}],2:[function(require,module,exports){
-var stream = require('stream')
-var util = require('util')
-var isBuffer = require('isbuffer')
-
-function WebsocketStream(server, options) {
-  if (!(this instanceof WebsocketStream)) return new WebsocketStream(server, options)
-  stream.Stream.call(this)
-  this.options = options || {}
-  this.readable = true
-  this.writable = true
-  if (typeof server === "object") {
-    this.ws = server
-    this.ws.on('message', this.onMessage.bind(this))
-    this.ws.on('error', this.onError.bind(this))
-    this.ws.on('close', this.onClose.bind(this))
-    this.ws.on('open', this.onOpen.bind(this))
-  } else {
-    this.ws = new WebSocket(server, this.options.protocol)
-    this.ws.binaryType = this.options.binaryType || 'arraybuffer'
-    this.ws.onmessage = this.onMessage.bind(this)
-    this.ws.onerror = this.onError.bind(this)
-    this.ws.onclose = this.onClose.bind(this)
-    this.ws.onopen = this.onOpen.bind(this)
-  }
-}
-
-util.inherits(WebsocketStream, stream.Stream)
-
-module.exports = WebsocketStream
-module.exports.WebsocketStream = WebsocketStream
-
-WebsocketStream.prototype.onMessage = function(e, flags) {
-  if (e.data) return this.emit('data', e.data, flags)
-  this.emit('data', e, flags)
-}
-
-WebsocketStream.prototype.onError = function(err) {
-  this.emit('error', err)
-}
-
-WebsocketStream.prototype.onClose = function(err) {
-  this.emit('end')
-}
-
-WebsocketStream.prototype.onOpen = function(err) {
-  this.emit('open')
-  this.emit('connect')
-}
-
-WebsocketStream.prototype.write = function(data) {
-  typeof WebSocket != 'undefined' && this.ws instanceof WebSocket
-    ? this.ws.send(data)
-    : this.ws.send(data, { binary : isBuffer(data) })
-}
-
-WebsocketStream.prototype.end = function() {
-  this.ws.close()
-}
-
-},{"stream":3,"util":5,"isbuffer":6}],7:[function(require,module,exports){
+},{"events":4}],6:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -867,7 +807,67 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":7}],6:[function(require,module,exports){
+},{"__browserify_process":6}],2:[function(require,module,exports){
+var stream = require('stream')
+var util = require('util')
+var isBuffer = require('isbuffer')
+
+function WebsocketStream(server, options) {
+  if (!(this instanceof WebsocketStream)) return new WebsocketStream(server, options)
+  stream.Stream.call(this)
+  this.options = options || {}
+  this.readable = true
+  this.writable = true
+  if (typeof server === "object") {
+    this.ws = server
+    this.ws.on('message', this.onMessage.bind(this))
+    this.ws.on('error', this.onError.bind(this))
+    this.ws.on('close', this.onClose.bind(this))
+    this.ws.on('open', this.onOpen.bind(this))
+  } else {
+    this.ws = new WebSocket(server, this.options.protocol)
+    this.ws.binaryType = this.options.binaryType || 'arraybuffer'
+    this.ws.onmessage = this.onMessage.bind(this)
+    this.ws.onerror = this.onError.bind(this)
+    this.ws.onclose = this.onClose.bind(this)
+    this.ws.onopen = this.onOpen.bind(this)
+  }
+}
+
+util.inherits(WebsocketStream, stream.Stream)
+
+module.exports = WebsocketStream
+module.exports.WebsocketStream = WebsocketStream
+
+WebsocketStream.prototype.onMessage = function(e, flags) {
+  if (e.data) return this.emit('data', e.data, flags)
+  this.emit('data', e, flags)
+}
+
+WebsocketStream.prototype.onError = function(err) {
+  this.emit('error', err)
+}
+
+WebsocketStream.prototype.onClose = function(err) {
+  this.emit('end')
+}
+
+WebsocketStream.prototype.onOpen = function(err) {
+  this.emit('open')
+  this.emit('connect')
+}
+
+WebsocketStream.prototype.write = function(data) {
+  typeof WebSocket != 'undefined' && this.ws instanceof WebSocket
+    ? this.ws.send(data)
+    : this.ws.send(data, { binary : isBuffer(data) })
+}
+
+WebsocketStream.prototype.end = function() {
+  this.ws.close()
+}
+
+},{"stream":3,"util":5,"isbuffer":7}],7:[function(require,module,exports){
 (function(){var Buffer = require('buffer').Buffer;
 
 module.exports = isBuffer;
