@@ -46,10 +46,14 @@ function getDataArray(bytearray){
   for(var i=0;i<bytearray.length/2;i++){
     //for depth feed  . bytearray  [val , mult, val2, mult2, ...]
     // when out of range, mult=7. range (0-255, 0-7)
-    var depthVal = bytearray[2*i]+bytearray[2*i+1]*255;
+    var depthVal = bytearray[2*i]+bytearray[2*i+1]*256;
     var x = i % width;
     var y = Math.floor(i / width);
     dataArray[x][y] = depthVal;
+
+    if(depthVal>2040){
+      dataArray[x][y]=0;
+    }
   }
   return dataArray;
 }
@@ -67,30 +71,119 @@ function getBufferFromArray(arr){
 
 function processArray(arr){
   var res = createArray(width,height);
-  for(var i=0; i< width; i++){
+  var sub = createArray(width,height);
+  for(var i=0; i< width-1; i++){
     for(var j=0; j < height-1; j++){
-      if(arr[i][j]-arr[i][j+1]>0.9){
-        res[i][j] = 255;
+      var diffy = Math.abs(arr[i][j]-arr[i][j+1]);
+      var diffx = Math.abs(arr[i][j]-arr[i+1][j]);
+      if((diffy>2 || diffx>2)){
+        res[i][j] = 255
       }
+      else{
+        res[i][j] = 0;
+      }
+      var t_diff = Math.abs(mem[i][j]-res[i][j]);
+      sub[i][j] =Math.min(mem[i][j], res[i][j]);
+      mem[i][j]=res[i][j];
+
+
     }
   }
   return res;
 }
 
 
+function mode(array)
+{
+    if(array.length == 0)
+        return null;
+    var modeMap = {};
+    var maxEl = array[0], maxCount = 1;
+    for(var i = 0; i < array.length; i++)
+    {
+        var el = array[i];
+        if(modeMap[el] == null)
+            modeMap[el] = 1;
+        else
+            modeMap[el]++;
+        if(modeMap[el] > maxCount)
+        {
+            maxEl = el;
+            maxCount = modeMap[el];
+        }
+    }
+    return maxEl;
+}
+
+//from http://www.codeproject.com/Articles/317974/KinectDepthSmoothing
+function smoothDepth(arr){
+  var res = createArray(width,height);
+  for(var i=2; i< width-2; i++){
+    for(var j=2; j < height-2; j++){
+      if(arr[i][j]===0){
+        var innerBandCount = 0;
+        var outerBandCount = 0;
+        var filterCollection = [];
+
+        for (var y = -2; y < 3; y++)
+        {
+          for (var x = -2; x < 3; x++)
+          {
+            if (x != 0 || y != 0)
+            {
+              var i2 = i + x;
+              var j2 = j + y;
+              if(arr[i2][j2]!=0){
+                filterCollection.push(arr[i2][j2]);
+                if (y != 2 && y != -2 && x != 2 && x != -2){
+                  innerBandCount++;
+                }
+                else{
+                  outerBandCount++;
+                }
+
+              }
+            }
+          }
+        }
+        if (innerBandCount >= innerBandThreshold || outerBandCount >= outerBandThreshold)
+        {
+          res[i][j] = mode(filterCollection);
+        }
+        else{
+          res[i][j] = arr[i][j];
+        }
+      }
+      else{
+        res[i][j] = arr[i][j];
+      }
+    }
+  }
+  return res;
+}
+
 var kcontext = kinect();
 var width = 640;
 var height = 480;
+var mem = createArray(width,height);
+var innerBandThreshold = 4;
+var outerBandThreshold = 10;
 
+
+//for edge calc
+var BASE_THRESH = 1000;
+var DIFF_THRESH = 3;
 
 kcontext.resume();
-kcontext.start('depth');
+kcontext.start('depth')
 var kstream = new BufferStream();
 
 kcontext.on('depth', function (buf) {
   var bytearray = new Uint8Array(buf);
   var dataArray = getDataArray(bytearray);
-  var buffer = getBufferFromArray(processArray(dataArray));
+  var smoothArray = smoothDepth(dataArray);
+  var procArray = processArray(dataArray);
+  var buffer = getBufferFromArray(smoothArray);
   kstream.write(buffer);
 });
 

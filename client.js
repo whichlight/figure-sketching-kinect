@@ -24,7 +24,7 @@ function renderArrayToCanvas(arr){
   for(var i=0; i<width; i++){
     for(var j=0; j < height; j++){
       var index = j*width + i;
-      var depth = arr[i][j]/5;
+      var depth = arr[i][j];
       imgdata.data[4*index] = depth;
       imgdata.data[4*index+1] = depth;
       imgdata.data[4*index+2] = depth;
