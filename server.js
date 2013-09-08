@@ -71,7 +71,6 @@ function getBufferFromArray(arr){
 
 function processArray(arr){
   var res = createArray(width,height);
-  var sub = createArray(width,height);
   for(var i=0; i< width-1; i++){
     for(var j=0; j < height-1; j++){
       var diffy = Math.abs(arr[i][j]-arr[i][j+1]);
@@ -82,11 +81,6 @@ function processArray(arr){
       else{
         res[i][j] = 0;
       }
-      var t_diff = Math.abs(mem[i][j]-res[i][j]);
-      sub[i][j] =t_diff;
-        mem[i][j]=res[i][j];
-
-
     }
   }
   return res;
@@ -181,10 +175,12 @@ function movingAverage(arr, movingAverageWindow){
     }
   }
 
-  for(var layer=0; layer < depthQueue.length ; layer ++){
+  for(var layer=depthQueue.length-1; layer >=0 ; layer--){
     for(var i=0; i<width; i++){
       for( var j=0; j<height; j++){
-        sumDepthArray[i][j] += depthQueue[layer][i][j-2*count] * count;
+       //the y coord is shifted for previous arrays to get an upward
+       //movement
+        sumDepthArray[i][j] += depthQueue[layer][i][j+2*count] * count;
       }
     }
     denominator+=count;
