@@ -2,7 +2,6 @@ var app = require('http').createServer(handler).listen(3000)
 , fs = require('fs')
 , kinect = require('kinect')
 , BufferStream = require('bufferstream')
-, $ = require('jquery')
 , WebSocketServer = require('ws').Server
 , websocket = require('websocket-stream')
 , wss = new WebSocketServer({server: app});

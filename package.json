@@ -1,0 +1,34 @@
+{
+  "name": "figure-sketching-kinect",
+  "version": "0.0.0",
+  "description": "a javascript computer vision app that generates sketches with a kinect",
+  "main": "server.js",
+  "dependencies": {
+    "buffertools": "~1.1.1",
+    "kinect": "~0.1.7",
+    "bufferstream": "~0.6.0",
+    "websocket-stream": "~0.3.2",
+    "browserify": "~2.29.1",
+    "ws": "~0.4.30"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/whichlight/figure-sketching-kinect.git"
+  },
+  "keywords": [
+    "computer",
+    "vision",
+    "kinect",
+    "art"
+  ],
+  "author": "whichlight",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/whichlight/figure-sketching-kinect/issues"
+  }
+}
