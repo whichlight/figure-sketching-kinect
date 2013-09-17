@@ -4,6 +4,7 @@ var app = require('http').createServer(handler).listen(3000)
 , BufferStream = require('bufferstream')
 , WebSocketServer = require('ws').Server
 , websocket = require('websocket-stream')
+, Png = require('png').Png
 , wss = new WebSocketServer({server: app});
 
 function handler (req, res) {
@@ -14,7 +15,7 @@ function handler (req, res) {
             res.writeHead(500);
             return res.end('Error loading index.html');
           }
-          res.writeHead(200);
+          res.writeHead(200)
           res.end(data);
         });
   }
@@ -30,46 +31,39 @@ function handler (req, res) {
   }
 }
 
-function createArray(length) {
-  var arr = new Array(length || 0),
-      i = length;
-  if (arguments.length > 1) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    while(i--) arr[length-1 - i] = createArray.apply(this, args);
+function createArray(width, height) {
+  var arr = new Array(width);
+  for(var i=0; i< width; i++){
+    arr[i] = new Array(height);
   }
-  return arr;
+  return arr
 }
 
-function getDataArray(bytearray){
-  var dataArray = createArray(width,height);
+function getDataArray(output, bytearray){
   for(var i=0;i<bytearray.length/2;i++){
     //for depth feed  . bytearray  [val , mult, val2, mult2, ...]
     // when out of range, mult=7. range (0-255, 0-7)
     var depthVal = bytearray[2*i]+bytearray[2*i+1]*256;
     var x = i % width;
     var y = Math.floor(i / width);
-    dataArray[x][y] = depthVal;
+    output[x][y] = depthVal;
 
     if(depthVal>2040){
-      dataArray[x][y]=0;
+      output[x][y]=0;
     }
   }
-  return dataArray;
 }
 
-function getBufferFromArray(arr){
-  var buf = new Buffer(width*height);
+function getBufferFromArray(buf, arr){
   for(var i=0; i<width; i++){
     for(var j=0; j <height; j++){
       var index = j*width + i;
       buf[index] = arr[i][j];
     }
   }
-  return buf;
 }
 
-function processArray(arr){
-  var res = createArray(width,height);
+function processArray(res, arr){
   for(var i=0; i< width-1; i++){
     for(var j=0; j < height-1; j++){
       var diffy = Math.abs(arr[i][j]-arr[i][j+1]);
@@ -82,7 +76,6 @@ function processArray(arr){
       }
     }
   }
-  return res;
 }
 
 
@@ -109,8 +102,7 @@ function mode(array)
 }
 
 //from http://www.codeproject.com/Articles/317974/KinectDepthSmoothing
-function smoothDepth(arr){
-  var res = createArray(width,height);
+function smoothDepth(res, arr){
   for(var i=2; i< width-2; i++){
     for(var j=2; j < height-2; j++){
       if(arr[i][j]===0){
@@ -152,11 +144,10 @@ function smoothDepth(arr){
       }
     }
   }
-  return res;
 }
 
 
-function movingAverage(arr, movingAverageWindow){
+function movingAverage(averagedDepthArray, sumDepthArray, arr, movingAverageWindow){
   depthQueue.push(arr);
 
   if (depthQueue.length > movingAverageWindow){
@@ -165,8 +156,6 @@ function movingAverage(arr, movingAverageWindow){
 
   var denominator = 0;
   var count = 1;
-  var sumDepthArray = createArray(width,height);
-  var averagedDepthArray = createArray(width,height);
 
   for(var i=0; i<width; i++){
     for( var j=0; j<height; j++){
@@ -190,13 +179,26 @@ function movingAverage(arr, movingAverageWindow){
       averagedDepthArray[i][j] = sumDepthArray[i][j]/denominator;
     }
   }
-  return averagedDepthArray;
 }
+
+
+function getImageFromArray(img, arr){
+  for(var i=0; i<width; i++){
+    for(var j=0; j <height; j++){
+      var index = j*width + i;
+      var depth = arr[i][j];
+      img[4*i] = depth;
+      img[4*i+1] = depth;
+      img[4*i+2] = depth;
+      img[4*i+3] = 255;
+    }
+  }
+}
+
 
 var kcontext = kinect();
 var width = 640;
 var height = 480;
-var mem = createArray(width,height);
 var innerBandThreshold = 2;
 var outerBandThreshold = 8;
 var depthQueue = [];
@@ -209,14 +211,26 @@ var DIFF_THRESH = 3;
 kcontext.resume();
 kcontext.start('depth')
 var kstream = new BufferStream();
+var bytearray = new Uint8Array(614400);
+var dataArray = createArray(width,height);
+var procArray = createArray(width,height);
+var smoothArray = createArray(width,height);
+var aveArray= createArray(width,height);
+var sumArray= createArray(width,height);
+var buffer = new Buffer(width*height);
+var imgdata = new Buffer(width*height*4);
 
 kcontext.on('depth', function (buf) {
-  var bytearray = new Uint8Array(buf);
-  var dataArray = getDataArray(bytearray);
-  var smoothArray = smoothDepth(dataArray);
-  var aveArray = movingAverage(smoothArray,3);
-  var procArray = processArray(aveArray);
-  var buffer = getBufferFromArray(procArray);
+  bytearray = Uint8Array(buf);
+  getDataArray(dataArray, bytearray);
+  smoothDepth(smoothArray, dataArray);
+  movingAverage(aveArray, sumArray, smoothArray,3);
+  processArray(procArray, aveArray);
+  //getImageFromArray(imgdata, dataArray);
+//  png = new Png(imgdata, width, height, 'rgb');
+ // png.encode(function(img){
+ // });
+  getBufferFromArray(buffer, procArray);
   kstream.write(buffer);
 });
 
@@ -229,7 +243,6 @@ wss.on('connection', function(ws) {
     stream.writable=false;
     console.log('closed socket');
   });
-
 });
 
 
