@@ -185,12 +185,11 @@ function movingAverage(averagedDepthArray, sumDepthArray, arr, movingAverageWind
 function getImageFromArray(img, arr){
   for(var i=0; i<width; i++){
     for(var j=0; j <height; j++){
-      var index = j*width + i;
+      var index = j*width + (width-i);
       var depth = arr[i][j];
-      img[4*i] = depth;
-      img[4*i+1] = depth;
-      img[4*i+2] = depth;
-      img[4*i+3] = 255;
+      img[3*index] = depth;
+      img[3*index+1] = depth;
+      img[3*index+2] = depth;
     }
   }
 }
@@ -202,7 +201,6 @@ var height = 480;
 var innerBandThreshold = 2;
 var outerBandThreshold = 8;
 var depthQueue = [];
-
 
 //for edge calc
 var BASE_THRESH = 1000;
@@ -218,7 +216,7 @@ var smoothArray = createArray(width,height);
 var aveArray= createArray(width,height);
 var sumArray= createArray(width,height);
 var buffer = new Buffer(width*height);
-var imgdata = new Buffer(width*height*4);
+var imgdata = new Buffer(width*height*3);
 
 kcontext.on('depth', function (buf) {
   bytearray = Uint8Array(buf);
@@ -226,12 +224,14 @@ kcontext.on('depth', function (buf) {
   smoothDepth(smoothArray, dataArray);
   movingAverage(aveArray, sumArray, smoothArray,3);
   processArray(procArray, aveArray);
-  //getImageFromArray(imgdata, dataArray);
-//  png = new Png(imgdata, width, height, 'rgb');
- // png.encode(function(img){
- // });
-  getBufferFromArray(buffer, procArray);
-  kstream.write(buffer);
+  getImageFromArray(imgdata, procArray);
+
+  //getBufferFromArray(buffer, procArray);
+
+  png = new Png(imgdata, width, height, 'rgb');
+  png.encode(function(img){
+    kstream.write(img);
+  });
 });
 
 

@@ -1,13 +1,32 @@
 ;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-function renderArrayToCanvas(arr){
-  for(var i=0;i<arr.length;i++){
-    var depth = arr[i];
-    imgdata.data[4*i] = arr[i];
-    imgdata.data[4*i+1] = depth;
-    imgdata.data[4*i+2] = depth;
-    imgdata.data[4*i+3] = 255;
+
+
+// public method for encoding an Uint8Array to base64
+function encode (input) {
+  var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+  var output = "";
+  var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+  var i = 0;
+
+  while (i < input.length) {
+    chr1 = input[i++];
+    chr2 = i < input.length ? input[i++] : Number.NaN; // Not sure if the index 
+    chr3 = i < input.length ? input[i++] : Number.NaN; // checks are needed here
+
+    enc1 = chr1 >> 2;
+    enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+    enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+    enc4 = chr3 & 63;
+
+    if (isNaN(chr2)) {
+      enc3 = enc4 = 64;
+    } else if (isNaN(chr3)) {
+      enc4 = 64;
+    }
+    output += keyStr.charAt(enc1) + keyStr.charAt(enc2) +
+      keyStr.charAt(enc3) + keyStr.charAt(enc4);
   }
-  ctx.putImageData(imgdata,0,0);
+  return output;
 }
 
 var websocket = require('websocket-stream');
@@ -18,10 +37,11 @@ var width = 640;
 var height = 480;
 var ctx = document.getElementById('canvas').getContext('2d');
 var imgdata = ctx.getImageData(0,0, width, height);
+var image = $('img');
 
 socket.on('data', function (data) {
     var bytearray = new Uint8Array(data);
-    renderArrayToCanvas(bytearray);
+    image.attr('src', "data:image/png;base64,"+encode(bytearray));
     });
 
 socket.on('end', function(){
