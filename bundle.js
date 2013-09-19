@@ -9,6 +9,7 @@ function createArray(length) {
   return arr;
 }
 
+
 function getDepthArray(bytearray){
   var dataArray = createArray(width,height);
   for(var i=0;i<bytearray.length;i++){
@@ -26,10 +27,12 @@ function renderArrayToCanvas(arr){
     for(var j=0; j < height; j++){
       var index = j*width + i;
       var depth = arr[width-1-i][j];
+      if(i>10){
       imgdata.data[4*index] = depth;
       imgdata.data[4*index+1] = depth;
       imgdata.data[4*index+2] = depth;
       imgdata.data[4*index+3] = 255;
+      }
     }
   }
   ctx.putImageData(imgdata,0,0);

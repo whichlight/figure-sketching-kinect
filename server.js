@@ -41,6 +41,7 @@ function createArray(length) {
   return arr;
 }
 
+
 function getDataArray(bytearray){
   var dataArray = createArray(width,height);
   for(var i=0;i<bytearray.length/2;i++){
@@ -51,7 +52,10 @@ function getDataArray(bytearray){
     var y = Math.floor(i / width);
     dataArray[x][y] = depthVal;
 
-    if(depthVal>2040){
+    //distance threshold
+    if(depthVal>973){
+
+   // if(depthVal>2000){
       dataArray[x][y]=0;
     }
   }
@@ -76,7 +80,7 @@ function processArray(arr){
       var diffy = Math.abs(arr[i][j]-arr[i][j+1]);
       var diffx = Math.abs(arr[i][j]-arr[i+1][j]);
       if((diffy>1 || diffx>1)){
-        res[i][j] = Math.max(diffy,diffx)*2+200;
+        res[i][j] = Math.max(diffy,diffx)*2+240;
       }
       else{
         res[i][j] = 0;
